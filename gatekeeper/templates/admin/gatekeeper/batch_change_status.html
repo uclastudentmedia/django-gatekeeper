@@ -1,0 +1,36 @@
+{% extends "admin/change_form.html" %}
+{% load adminmedia admin_list i18n %}
+
+{% block extrahead %}{{ block.super }}
+  <script type="text/javascript" src="../../../jsi18n/"></script>
+  {{ media }}
+{% endblock %}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs">
+    <a href="../../../">{% trans "Home" %}</a>
+    &rsaquo;
+    <a href="../../">{{ ct_opts.app_label|capfirst }}</a>
+    &rsaquo;
+    <a href="../../{{ ct_opts.module_name }}">{{ ct_opts.verbose_name_plural|capfirst }}</a>
+    &rsaquo;
+    Change Status
+{% endblock %}
+
+{% block content %}
+  <div id="content-main">
+    {% block object-tools %}{% endblock %}
+    <form action="" method="post" id="{{ collection_opts.module_name }}_form">{% block form_top %}{% endblock %}
+        <fieldset class="module aligned">
+            <div class="form-row flagged_by">
+                <div>
+                    {{ form }}
+                </div>
+            </div>
+        </fieldset>
+        <div class="submit-row">
+            <input type="submit" value="{% trans 'Submit' %}" class="default" name="_save" />
+        </div>
+    </form>
+  </div>
+{% endblock %}

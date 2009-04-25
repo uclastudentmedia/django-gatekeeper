@@ -1,4 +1,3 @@
-
 __author__ = "Jeremy Carbaugh (jcarbaugh@sunlightfoundation.com)"
 __version__ = "0.1"
 __copyright__ = "Copyright (c) 2008 Sunlight Labs"
@@ -39,12 +38,7 @@ def _get_automod_user():
         automod_user.save()
         return automod_user
 
-
-#
-# register models with gatekeeper
-#
-# 
-
+# Register Models with Gatekeeper
 registered_models = {}
 
 def register(model, import_unmoderated=False, auto_moderator=None, 
@@ -72,54 +66,52 @@ def register(model, import_unmoderated=False, auto_moderator=None,
             except:
                 pass
 
-#
-# add special helper fields and custom manager to class
-#
+# Add helper fields and custom manager to class
 def add_fields(cls, manager_name, status_name, flagged_name,
                moderation_object_name, base_manager):
-
+    
     # inherit from manager that is being replaced, fall back on models.Manager
     if base_manager is None:
         if hasattr(cls, manager_name):
             base_manager = getattr(cls, manager_name).__class__
         else:
             base_manager = Manager
-
+    
     # queryset should inherit from manager's QuerySet
     base_queryset = base_manager().get_query_set().__class__
-
+    
     class GatekeeperQuerySet(base_queryset):
         """ chainable queryset for checking status & flagging """
-
+        
         def _by_status(self, field_name, status):
             where_clause = '%s = %%s' % (field_name)
             return self.extra(where=[where_clause], params=[status])
-
+        
         def approved(self):
             return self._by_status(status_name, APPROVED_STATUS)
-
+        
         def pending(self):
             return self._by_status(status_name, PENDING_STATUS)
-
+        
         def rejected(self):
             return self._by_status(status_name, REJECTED_STATUS)
-
+        
         def flagged(self):
             return self._by_status(flagged_name, 1)
-
+        
         def not_flagged(self):
             return self._by_status(flagged_name, 0)
-
+    
     class GatekeeperManager(base_manager):
         """ custom manager that adds parameters and uses custom QuerySet """
-
+        
         # add moderation_id, status_name, and flagged_name attributes to the query
         def get_query_set(self):
             # parameters to help with generic SQL
             db_table = self.model._meta.db_table
             pk_name = self.model._meta.pk.attname
             content_type = ContentType.objects.get_for_model(self.model).id
-
+            
             # extra params - status, flag, and id of object (for later access)
             select = {'_moderation_id':'%s.id' % GATEKEEPER_TABLE,
                       '_moderation_status':'%s.moderation_status' % GATEKEEPER_TABLE,
@@ -128,42 +120,36 @@ def add_fields(cls, manager_name, status_name, flagged_name,
                      '%s.object_id=%s.%s' % (GATEKEEPER_TABLE, db_table, 
                                              pk_name)]
             tables=[GATEKEEPER_TABLE]
-
+            
             # build extra query then copy model/query to a GatekeeperQuerySet
             q = super(GatekeeperManager, self).get_query_set().extra(
                 select=select, where=where, tables=tables)
             return GatekeeperQuerySet(self.model, q.query)
-
+    
     def _get_moderation_object(self):
         """ accessor for moderated_object that caches the object """
         if not hasattr(self, '_moderation_object'):
             self._moderation_object = ModeratedObject.objects.get(pk=self._moderation_id)
         return self._moderation_object
-
-    # add custom manager and moderated_object to class
+    
+    # Add custom manager and helper fields to class
     cls.add_to_class(manager_name, GatekeeperManager())
     cls.add_to_class(moderation_object_name, property(_get_moderation_object))
     cls.add_to_class(status_name, property(lambda self: self._moderation_status))
     cls.add_to_class(flagged_name, property(lambda self: self._flagged))
 
-#
-# handler for object creation/deletion
-#
-
+# Handler for object creation/deletion
 def save_handler(sender, **kwargs):
-
     if kwargs.get('created', None):
-    
         instance = kwargs['instance']
-    
+        
         mo = ModeratedObject(
             moderation_status=DEFAULT_STATUS,
             content_object=instance,
             timestamp=datetime.datetime.now())
         mo.save()
-    
-        if ENABLE_AUTOMODERATION:
         
+        if ENABLE_AUTOMODERATION:
             auto_moderator = registered_models[instance.__class__]
             if auto_moderator:
                 mod = auto_moderator(mo)
@@ -173,14 +159,13 @@ def save_handler(sender, **kwargs):
                     mo.approve(_get_automod_user())
                 else:
                     mo.reject(_get_automod_user())
-        
+            
             if mo.moderation_status == PENDING_STATUS: # if status is pending
                 user = get_current_user()
-                print get_current_user()
                 if user and user.is_authenticated():
                     if user.is_superuser or user.has_perm('gatekeeper.change_moderatedobject'):
                         mo.approve(user)
-                    
+        
         if MODERATOR_LIST and mo.moderation_status < APPROVED_STATUS: # if there are moderators and the object is not approved
             subject = "[pending-moderation] %s" % instance
             message = "New object pending moderation.\n%s\nhttp://%s%s" % (instance, Site.objects.get_current().domain, reverse("gatekeeper_moderate_list"))
@@ -195,5 +180,3 @@ def delete_handler(sender, **kwargs):
         mo.delete()
     except ModeratedObject.DoesNotExist:
         pass
-
-
