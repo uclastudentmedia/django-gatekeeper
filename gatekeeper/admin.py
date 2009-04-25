@@ -88,5 +88,5 @@ class ModeratedObjectAdmin(admin.ModelAdmin):
 
 admin.site.register(ModeratedObject, ModeratedObjectAdmin)
 
-#if admin.site.index (or something)
-    # change the template
+if not admin.site.index_template:
+    admin.site.index_template = "admin/gatekeeper/index.html"
