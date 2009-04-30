@@ -66,7 +66,6 @@ class ModeratedObjectAdmin(admin.ModelAdmin):
             if form.is_valid():
                 status = form.cleaned_data[u'status']
                 for obj in objects:
-                    print dir(obj)
                     obj._moderate(status, request.user)
                 request.user.message_set.create(
                     message = u'%s objects successfully changed status to %s.' % (
