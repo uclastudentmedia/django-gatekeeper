@@ -168,7 +168,7 @@ def save_handler(sender, **kwargs):
         
         if MODERATOR_LIST and mo.moderation_status < APPROVED_STATUS: # if there are moderators and the object is not approved
             subject = "[pending-moderation] %s" % instance
-            message = "New object pending moderation.\n%s\nhttp://%s%s" % (instance, Site.objects.get_current().domain, reverse("admin_gatekeeper_moderated_object_batch_change_status"))
+            message = "New object pending moderation.\n%s\nhttp://%s%s" % (instance, Site.objects.get_current().domain, reverse("admin:admin_gatekeeper_moderated_object_batch_change_status"))
             from_addr = settings.DEFAULT_FROM_EMAIL 
             send_mail(subject, message, from_addr, MODERATOR_LIST, fail_silently=True)
 

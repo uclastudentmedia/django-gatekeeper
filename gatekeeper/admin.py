@@ -25,7 +25,7 @@ class ModeratedObjectAdmin(admin.ModelAdmin):
         ct = ContentType.objects.get_for_model(queryset.model)
         selected = request.POST.getlist(admin.ACTION_CHECKBOX_NAME)
         return HttpResponseRedirect('%s?ct=%s&ids=%s' % (
-                reverse('admin_gatekeeper_moderated_object_batch_change_status'),
+                reverse('admin:admin_gatekeeper_moderated_object_batch_change_status'),
                 ct.pk, ",".join(selected)))
     batch_change_status_action.short_description = u"Change Status"
     
@@ -54,7 +54,7 @@ class ModeratedObjectAdmin(admin.ModelAdmin):
             raise Http404 # TODO: Use a better error
         
         # Form the redirect URL
-        redir_url = u'%sadmin_%s_%s_changelist' % (
+        redir_url = u'%s:%s_%s_changelist' % (
                         self.admin_site.name,
                         ct.model_class()._meta.app_label,
                         ct.model_class()._meta.module_name)
